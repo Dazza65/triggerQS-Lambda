@@ -2,7 +2,7 @@
     "fileLocations": [
         {
             "URIPrefixes": [
-                "s3://getjiradata-etl-transform/jira.json/"
+                "run build-qs-json.sh to replace with generated URI"
             ]
         }
     ],
