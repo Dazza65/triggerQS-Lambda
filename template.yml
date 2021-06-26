@@ -1,0 +1,81 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  DevOpsKpiTriggerQSRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: "Role to provide access for Lambda function to trigger a QuickSight Ingestion command"
+      RoleName: DevOpsKpiTriggerQSRole
+      AssumeRolePolicyDocument: {
+        "Version": "2012-10-17",
+        "Statement": [ {
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+          }]
+      }
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies: 
+        - PolicyName: DevOpsKpiQSS3Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                - s3:GetObject
+                - s3:ListBucket
+                Resource:
+                  - !ImportValue DevOpsKpiEtl:EtlOutputBucketArn
+                  - !Join ['', [!ImportValue DevOpsKpiEtl:EtlOutputBucketArn, '/*']]
+                Effect: Allow
+
+  QSDataSource:
+    Type: AWS::QuickSight::DataSource
+    Properties:
+      AwsAccountId: !Ref AWS::AccountId
+      DataSourceId: !Join ['-', [!Ref AWS::AccountId, '20210625', '01']]
+      DataSourceParameters:
+        S3Parameters:
+          ManifestFileLocation: 
+            Bucket: devopskpi-346327484579-etloutput
+            Key: quicksight.json
+      Name: "DevOpsKPILTTD"
+      Type: S3
+
+#  QSDataSet:
+#    Type: AWS::QuickSight::DataSet
+#    Properties:
+#      AwsAccountId: !Ref AWS::AccountId
+#      DataSetId: !Join ['-', [!Ref AWS::AccountId, '20210625', '01']]
+#      ImportMode: "SPICE"
+#      LogicalTableMap:
+#      Name: "String"
+#      Permissions:
+#        Permissions
+#      PhysicalTableMap:
+#      RowLevelPermissionDataSet:
+#        Arn: "String"
+#        Namespace: "String"
+#        PermissionPolicy: "String"
+
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: "darrenharris-lambda-repository"
+        S3Key: "triggerQS.zip"
+      Description: "Triggers QuickSight to ingest JIRA data"
+      FunctionName: "DevOpsKpiTriggerQS"
+      Handler: "triggerQS.handler"
+      PackageType: "Zip"
+      Role: !GetAtt DevOpsKpiTriggerQSRole.Arn
+      Runtime: "nodejs14.x"
+      Timeout: 10
+      TracingConfig:
+        Mode: "Active"
+
+
