@@ -45,22 +45,97 @@ Resources:
             Key: quicksight.json
       Name: "DevOpsKPILTTD"
       Type: S3
+      Permissions:
+        - Actions:
+            - quicksight:DescribeDataSource
+            - quicksight:DescribeDataSourcePermissions
+            - quicksight:PassDataSource
+          Principal: !Sub 
+            - 'arn:aws:quicksight:ap-southeast-2:${Account}:user/default/harrisd'
+            - Account: !Ref 'AWS::AccountId'
 
-#  QSDataSet:
-#    Type: AWS::QuickSight::DataSet
-#    Properties:
-#      AwsAccountId: !Ref AWS::AccountId
-#      DataSetId: !Join ['-', [!Ref AWS::AccountId, '20210625', '01']]
-#      ImportMode: "SPICE"
-#      LogicalTableMap:
-#      Name: "String"
-#      Permissions:
-#        Permissions
-#      PhysicalTableMap:
-#      RowLevelPermissionDataSet:
-#        Arn: "String"
-#        Namespace: "String"
-#        PermissionPolicy: "String"
+  QSDataSet:
+    Type: AWS::QuickSight::DataSet
+    Properties:
+      AwsAccountId: !Ref AWS::AccountId
+      DataSetId: !Join ['-', [!Ref AWS::AccountId, '20210625', '01']]
+      ImportMode: "SPICE"
+      Name: "DevOpsKpiJiraDS"
+      PhysicalTableMap:
+        1234567890-001-20210625-01:
+          S3Source:
+            DataSourceArn: !GetAtt QSDataSource.Arn
+            InputColumns: 
+              - Name: columnId-1
+                Type: STRING
+              - Name: columnId-2
+                Type: STRING
+              - Name: columnId-3
+                Type: STRING
+              - Name: columnId-4
+                Type: STRING
+              - Name: columnId-5
+                Type: STRING
+              - Name: columnId-6
+                Type: STRING
+            UploadSettings:
+              Format: JSON
+      LogicalTableMap:
+        1234567890-002-20210625-01:
+          Alias: JiraLttd
+          DataTransforms:
+            - RenameColumnOperation:
+                ColumnName: columnId-1
+                NewColumnName: dateresolved
+            - CastColumnTypeOperation:
+                ColumnName: dateresolved
+                NewColumnType: DATETIME
+                Format: yyyy-MM-dd
+            - RenameColumnOperation:
+                ColumnName: columnId-2
+                NewColumnName: key
+            - RenameColumnOperation:
+                ColumnName: columnId-3
+                NewColumnName: datecreated
+            - CastColumnTypeOperation:
+                ColumnName: datecreated
+                NewColumnType: DATETIME
+                Format: yyyy-MM-dd
+            - RenameColumnOperation:
+                ColumnName: columnId-4
+                NewColumnName: summary
+            - RenameColumnOperation:
+                ColumnName: columnId-5
+                NewColumnName: lttd
+            - CastColumnTypeOperation:
+                ColumnName: lttd
+                NewColumnType: INTEGER
+            - RenameColumnOperation:
+                ColumnName: columnId-6
+                NewColumnName: id
+            - CastColumnTypeOperation:
+                ColumnName: id
+                NewColumnType: INTEGER
+            - ProjectOperation:
+                ProjectedColumns:
+                  - dateresolved
+                  - key
+                  - datecreated
+                  - summary
+                  - lttd
+                  - id
+          Source:
+            PhysicalTableId: "1234567890-001-20210625-01"
+      Permissions:
+        - Actions:
+            - quicksight:DescribeDataSet
+            - quicksight:DescribeDataSetPermissions
+            - quicksight:PassDataSet
+            - quicksight:DescribeIngestion
+            - quicksight:ListIngestions
+          Principal: !Sub 
+            - 'arn:aws:quicksight:ap-southeast-2:${Account}:user/default/harrisd'
+            - Account: !Ref 'AWS::AccountId'
 
   LambdaFunction:
     Type: AWS::Lambda::Function
@@ -77,5 +152,3 @@ Resources:
       Timeout: 10
       TracingConfig:
         Mode: "Active"
-
-
