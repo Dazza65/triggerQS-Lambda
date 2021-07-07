@@ -32,6 +32,15 @@ Resources:
                   - !ImportValue DevOpsKpiEtl:EtlOutputBucketArn
                   - !Join ['', [!ImportValue DevOpsKpiEtl:EtlOutputBucketArn, '/*']]
                 Effect: Allow
+        - PolicyName: DevOpsKpiQSInjestionPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Action:
+                - quicksight:CreateIngestion
+                Resource:
+                  - !Join ['/', [!GetAtt QSDataSet.Arn, 'ingestion', '*']]
+                Effect: Allow
 
   QSDataSource:
     Type: AWS::QuickSight::DataSource
